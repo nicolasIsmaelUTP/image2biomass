@@ -9,6 +9,8 @@ class TrainingConfig:
     num_workers: int = 0
     lr: float = 1e-4
     epochs: int = 5
+    early_stopping_patience: int = 20
+    freeze_backbone: bool = True
     model_dir: Path = Path("models")
     checkpoint_name: str = "baseline_resnet18.pt"
 
