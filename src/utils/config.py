@@ -8,7 +8,7 @@ class TrainingConfig:
     batch_size: int = 16
     num_workers: int = 0
     lr: float = 1e-4
-    epochs: int = 5
+    epochs: int = 100
     early_stopping_patience: int = 20
     freeze_backbone: bool = True
     model_dir: Path = Path("models")
