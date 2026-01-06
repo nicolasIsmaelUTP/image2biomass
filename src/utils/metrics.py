@@ -48,6 +48,10 @@ def weighted_r2_score(
 ) -> float:
     """
     Compute globally weighted R^2 pooling all targets with per-target weights.
+    
+    Automatically computes derived targets:
+    - Dry_Total_g = Dry_Clover_g + Dry_Green_g + Dry_Dead_g
+    - GDM_g = Dry_Green_g + Dry_Clover_g
 
     Args:
         y_true: Ground truth values (1D sequence).
@@ -70,6 +74,53 @@ def weighted_r2_score(
         raise ValueError("y_true and y_pred must have the same shape")
     if y_true_arr.shape[0] != target_names_arr.shape[0]:
         raise ValueError("target_names length must match y_true/y_pred")
+
+    # Compute derived targets if base targets are present
+    y_true_expanded = []
+    y_pred_expanded = []
+    target_names_expanded = []
+    
+    # Group values by sample (assuming targets are in repeating blocks)
+    unique_targets = np.unique(target_names_arr)
+    n_targets = len(unique_targets)
+    n_samples = len(y_true_arr) // n_targets
+    
+    for i in range(n_samples):
+        start_idx = i * n_targets
+        end_idx = start_idx + n_targets
+        
+        sample_true = y_true_arr[start_idx:end_idx]
+        sample_pred = y_pred_arr[start_idx:end_idx]
+        sample_names = target_names_arr[start_idx:end_idx]
+        
+        # Add original values
+        y_true_expanded.extend(sample_true)
+        y_pred_expanded.extend(sample_pred)
+        target_names_expanded.extend(sample_names)
+        
+        # Create lookup for this sample
+        name_to_true = {name: val for name, val in zip(sample_names, sample_true)}
+        name_to_pred = {name: val for name, val in zip(sample_names, sample_pred)}
+        
+        # Compute Dry_Total_g if base components exist
+        if all(k in name_to_true for k in ['Dry_Clover_g', 'Dry_Green_g', 'Dry_Dead_g']):
+            total_true = name_to_true['Dry_Clover_g'] + name_to_true['Dry_Green_g'] + name_to_true['Dry_Dead_g']
+            total_pred = name_to_pred['Dry_Clover_g'] + name_to_pred['Dry_Green_g'] + name_to_pred['Dry_Dead_g']
+            y_true_expanded.append(total_true)
+            y_pred_expanded.append(total_pred)
+            target_names_expanded.append('Dry_Total_g')
+        
+        # Compute GDM_g if components exist
+        if all(k in name_to_true for k in ['Dry_Green_g', 'Dry_Clover_g']):
+            gdm_true = name_to_true['Dry_Green_g'] + name_to_true['Dry_Clover_g']
+            gdm_pred = name_to_pred['Dry_Green_g'] + name_to_pred['Dry_Clover_g']
+            y_true_expanded.append(gdm_true)
+            y_pred_expanded.append(gdm_pred)
+            target_names_expanded.append('GDM_g')
+    
+    y_true_arr = np.array(y_true_expanded, dtype=np.float64)
+    y_pred_arr = np.array(y_pred_expanded, dtype=np.float64)
+    target_names_arr = np.array(target_names_expanded)
 
     _validate_targets(target_names_arr, target_weights)
 
