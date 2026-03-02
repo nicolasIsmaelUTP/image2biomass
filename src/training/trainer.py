@@ -54,7 +54,6 @@ class Trainer:
             mode="min",
             factor=scheduler_factor,
             patience=scheduler_patience,
-            verbose=False,
         )
 
     def _run_epoch(self, loader: DataLoader, train: bool) -> float:
